@@ -14,6 +14,7 @@ from pathlib import Path
 
 SAMPLE_RATE = 44_100
 DURATION_SECONDS = 1.8
+VIOLIN_DURATION_SECONDS = 0.9
 NOTES = {"C4": 261.63, "D4": 293.66, "E4": 329.63, "G4": 392.00, "A4": 440.00}
 OUTPUT_DIRECTORY = Path(__file__).resolve().parent.parent / "sounds"
 
@@ -33,13 +34,13 @@ def envelope(index: int, total: int, decay: float, attack_seconds: float = 0.004
     return math.exp(-decay * index / total) * fade_out
 
 
-def plucked(freq: float, brightness: float, decay: float, seed: int) -> list[float]:
+def plucked(freq: float, brightness: float, decay: float, seed: int, duration_seconds: float = DURATION_SECONDS) -> list[float]:
     """A small Karplus-Strong string model, suitable for harp and piano colours."""
     randomizer = random.Random(seed)
     period = max(2, round(SAMPLE_RATE / freq))
     line = [randomizer.uniform(-1.0, 1.0) for _ in range(period)]
     samples: list[float] = []
-    count = int(SAMPLE_RATE * DURATION_SECONDS)
+    count = int(SAMPLE_RATE * duration_seconds)
     damping = 0.9915 if decay < 3.0 else 0.985
     for index in range(count):
         value = line[index % period]
@@ -47,6 +48,50 @@ def plucked(freq: float, brightness: float, decay: float, seed: int) -> list[flo
         following = (index + 1) % period
         line[index % period] = damping * (brightness * line[index % period] + (1.0 - brightness) * line[following])
     return samples
+
+
+def harp(freq: float, seed: int) -> list[float]:
+    """Bright, short and bell-like: deliberately unlike the darker piano model."""
+    string = plucked(freq, brightness=0.38, decay=5.3, seed=seed)
+    count = len(string)
+    result: list[float] = []
+    for index, value in enumerate(string):
+        time = index / SAMPLE_RATE
+        shimmer = (
+            0.62 * value
+            + 0.22 * math.sin(math.tau * freq * 2.0 * time)
+            + 0.10 * math.sin(math.tau * freq * 3.0 * time)
+        )
+        result.append(shimmer * envelope(index, count, 4.8, 0.002))
+    return result
+
+
+def piano(freq: float, seed: int) -> list[float]:
+    """Three subtly detuned, long strings with a soft low register reinforcement."""
+    strings = [
+        plucked(freq * 0.9975, brightness=0.78, decay=0.60, seed=seed),
+        plucked(freq, brightness=0.76, decay=0.60, seed=seed + 1),
+        plucked(freq * 1.0025, brightness=0.78, decay=0.60, seed=seed + 2),
+    ]
+    count = len(strings[0])
+    result: list[float] = []
+    previous = 0.0
+    hammer_random = random.Random(seed + 7919)
+    for index in range(count):
+        time = index / SAMPLE_RATE
+        strings_mix = sum(string[index] for string in strings) / len(strings)
+        low_body = 0.13 * math.sin(math.tau * (freq / 2.0) * time) * envelope(index, count, 1.5)
+        # A short hammer transient separates the piano attack from the harp's softer pluck.
+        hammer_decay = math.exp(-95.0 * time)
+        hammer_noise = hammer_random.uniform(-1.0, 1.0) * hammer_decay * 0.16
+        hammer_tone = (
+            0.13 * math.sin(math.tau * freq * time)
+            + 0.08 * math.sin(math.tau * freq * 2.7 * time)
+            + 0.04 * math.sin(math.tau * freq * 5.1 * time)
+        ) * hammer_decay
+        previous = 0.68 * previous + 0.32 * (strings_mix + low_body)
+        result.append(previous + hammer_noise + hammer_tone)
+    return result
 
 
 def xylophone(freq: float) -> list[float]:
@@ -64,10 +109,10 @@ def xylophone(freq: float) -> list[float]:
 
 
 def violin(freq: float) -> list[float]:
-    count = int(SAMPLE_RATE * DURATION_SECONDS)
+    count = int(SAMPLE_RATE * VIOLIN_DURATION_SECONDS)
     result: list[float] = []
     attack = int(SAMPLE_RATE * 0.10)
-    release = int(SAMPLE_RATE * 0.20)
+    release = int(SAMPLE_RATE * 0.12)
     for index in range(count):
         time = index / SAMPLE_RATE
         vibrato = 1.0 + 0.004 * math.sin(math.tau * 5.2 * time)
@@ -95,8 +140,8 @@ def main() -> None:
     OUTPUT_DIRECTORY.mkdir(exist_ok=True)
     for note, frequency in NOTES.items():
         sounds = {
-            "harp": plucked(frequency, brightness=0.52, decay=3.5, seed=stable_seed("harp", note)),
-            "piano": plucked(frequency, brightness=0.60, decay=1.6, seed=stable_seed("piano", note)),
+            "harp": harp(frequency, seed=stable_seed("harp", note)),
+            "piano": piano(frequency, seed=stable_seed("piano", note)),
             "xylophone": xylophone(frequency),
             "violin": violin(frequency),
         }

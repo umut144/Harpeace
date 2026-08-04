@@ -22,7 +22,7 @@ const INSTRUMENTS := {
 }
 
 var mode: Mode = Mode.PLAY
-var selected_instrument := "harp"
+var selected_instrument := "piano"
 var players: Dictionary = {}
 
 
@@ -32,7 +32,7 @@ func _ready() -> void:
 		player.name = "Player_%s" % note
 		add_child(player)
 		players[note] = player
-	print("Instrument MVP bereit. Aktives Instrument: %s" % selected_instrument.capitalize())
+	print("Instrument MVP bereit. Aktives Instrument: %s" % instrument_label())
 	print("D-Pad Down: Auswahl | D-Pad Up: Spielen")
 
 
@@ -45,7 +45,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event.is_action_pressed("play_mode"):
 		mode = Mode.PLAY
-		print("SPIELMODUS: %s" % selected_instrument.capitalize())
+		print("SPIELMODUS: %s" % instrument_label())
 		get_viewport().set_input_as_handled()
 		return
 
@@ -69,9 +69,13 @@ func play_note(note: String) -> void:
 	var player := players[note] as AudioStreamPlayer
 	player.stream = stream
 	player.play()
-	print("%s: %s" % [selected_instrument.capitalize(), note])
+	print("%s: %s" % [instrument_label(), note])
 
 
 func preview_instrument() -> void:
-	print("Ausgewählt: %s (Vorschau C4)" % selected_instrument.capitalize())
+	print("Ausgewählt: %s (Vorschau C4)" % instrument_label())
 	play_note("C4")
+
+
+func instrument_label() -> String:
+	return selected_instrument.replace("_", " ").capitalize()
