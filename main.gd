@@ -22,7 +22,7 @@ const INSTRUMENTS := {
 }
 
 const TRIGGER_PRESS_THRESHOLD := 0.35
-const MAX_ACTIVE_VOICES := 2
+const MAX_ACTIVE_VOICES := 3
 
 var mode: Mode = Mode.PLAY
 var selected_instrument := "piano"

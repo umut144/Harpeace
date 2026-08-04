@@ -30,15 +30,16 @@ the threshold crossing. Holding a trigger does not retrigger it.
 
 ## Runtime audio architecture
 
-`main.gd` uses a shared two-voice FIFO pool:
+`main.gd` uses a shared three-voice FIFO pool:
 
 ```text
 first note  -> Voice_1
 second note -> Voice_2
-third note -> stop oldest voice, reuse it for the new note
+third note  -> Voice_3
+fourth note -> stop oldest voice, reuse it for the new note
 ```
 
-The pool is global across all instruments and is intentionally limited to two
+The pool is global across all instruments and is intentionally limited to three
 simultaneous sounds. This was the first configuration that remained clean in
 manual tests with the current generated samples.
 
@@ -71,7 +72,7 @@ prints a warning instead of playing a fallback sound.
 3. Put its five files in `sounds/foundation_<instrument>/`.
 4. In Godot, import the new WAVs as PCM/Uncompressed, with loop, normalize,
    trim and force-8-bit disabled.
-5. Test it alone through the two-voice pool before adding it to `INSTRUMENTS`.
-6. Test two rapid notes, same-note retriggering, and instrument switching.
+5. Test it alone through the three-voice pool before adding it to `INSTRUMENTS`.
+6. Test three rapid notes, same-note retriggering, and instrument switching.
 
 Keep the Python source and regenerated WAV outputs together in the same commit.

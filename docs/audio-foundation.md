@@ -46,7 +46,7 @@ runtime builds its asset paths from the instrument and note names.
 
 The scripts deliberately generate mono 44.1 kHz / 16-bit PCM files, limit the
 source peak to `0.25`, and apply short edge fades. The headroom prevents normal
-two-note sums from clipping; the fades prevent clicks when a voice is replaced.
+three-note sums from clipping; the fades prevent clicks when a voice is replaced.
 
 ## Godot import
 
@@ -75,7 +75,7 @@ using the desired oldest-voice replacement behaviour.
 
 1. Regenerate exactly one instrument family.
 2. Reimport only its five WAV files as PCM in Godot.
-3. Test one note, two overlapping notes, and a fast third note.
+3. Test one note, three overlapping notes, and a fast fourth note.
 4. Only then change its synthesis parameters or the voice limit.
 
 If distortion returns, first replay `sounds/reference_sine/`. Clean sine tones
