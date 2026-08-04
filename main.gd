@@ -22,8 +22,8 @@ const INSTRUMENTS := {
 }
 
 const TRIGGER_PRESS_THRESHOLD := 0.35
-const MAX_ACTIVE_VOICES := 3
-const AUDIO_FOUNDATION_TEST := true
+const MAX_ACTIVE_VOICES := 2
+const AUDIO_FOUNDATION_TEST := false
 const REFERENCE_VOICE_COUNT := 2
 const FOUNDATION_INSTRUMENT := "harp"
 
@@ -59,7 +59,7 @@ func _ready() -> void:
 			if stream_cache.has("%s_%s" % [instrument, first_note]):
 				continue
 			for note: String in NOTES.values():
-				var path := "res://sounds/%s_%s.wav" % [instrument, note]
+				var path := "res://sounds/foundation_%s/%s_%s.wav" % [instrument, instrument, note]
 				stream_cache["%s_%s" % [instrument, note]] = load(path) as AudioStream
 		for slot in MAX_ACTIVE_VOICES:
 			var player := AudioStreamPlayer.new()

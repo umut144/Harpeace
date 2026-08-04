@@ -54,3 +54,8 @@ python3 audio_generator/generate_foundation_piano.py
 It writes to `sounds/foundation_piano/`. Select those five WAV files in Godot,
 apply the same PCM import settings, and click **Reimport** before running the
 Phase 4 test.
+
+The approved foundation sets are stored under `sounds/foundation_piano/`,
+`sounds/foundation_harp/`, `sounds/foundation_violin/`, and
+`sounds/foundation_xylophone/`. Once each set passes the isolated test, the MVP
+uses the same two-voice pool and restores D-pad instrument selection.
