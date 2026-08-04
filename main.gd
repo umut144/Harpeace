@@ -23,12 +23,15 @@ const INSTRUMENTS := {
 
 const TRIGGER_PRESS_THRESHOLD := 0.35
 const MAX_ACTIVE_VOICES := 3
+const AUDIO_FOUNDATION_TEST := true
 
 var mode: Mode = Mode.PLAY
 var selected_instrument := "piano"
 var stream_cache: Dictionary = {}
 var voice_pool: Array[AudioStreamPlayer] = []
 var active_voices: Array[AudioStreamPlayer] = []
+var reference_stream_cache: Dictionary = {}
+var reference_player: AudioStreamPlayer
 var trigger_pressed := {
 	JOY_AXIS_TRIGGER_LEFT: false,
 	JOY_AXIS_TRIGGER_RIGHT: false,
@@ -39,18 +42,25 @@ var trigger_idle := {}
 func _ready() -> void:
 	remove_trigger_button("note_e", 13)
 	remove_trigger_button("note_a", 14)
-	for instrument: String in INSTRUMENTS.values():
-		var first_note := NOTES.values()[0] as String
-		if stream_cache.has("%s_%s" % [instrument, first_note]):
-			continue
+	if AUDIO_FOUNDATION_TEST:
 		for note: String in NOTES.values():
-			var path := "res://sounds/%s_%s.wav" % [instrument, note]
-			stream_cache["%s_%s" % [instrument, note]] = load(path) as AudioStream
-	for slot in MAX_ACTIVE_VOICES:
-		var player := AudioStreamPlayer.new()
-		player.name = "Voice_%d" % (slot + 1)
-		add_child(player)
-		voice_pool.append(player)
+			reference_stream_cache[note] = load("res://sounds/reference_sine/sine_%s.wav" % note) as AudioStream
+		reference_player = AudioStreamPlayer.new()
+		reference_player.name = "ReferenceSinePlayer"
+		add_child(reference_player)
+	else:
+		for instrument: String in INSTRUMENTS.values():
+			var first_note := NOTES.values()[0] as String
+			if stream_cache.has("%s_%s" % [instrument, first_note]):
+				continue
+			for note: String in NOTES.values():
+				var path := "res://sounds/%s_%s.wav" % [instrument, note]
+				stream_cache["%s_%s" % [instrument, note]] = load(path) as AudioStream
+		for slot in MAX_ACTIVE_VOICES:
+			var player := AudioStreamPlayer.new()
+			player.name = "Voice_%d" % (slot + 1)
+			add_child(player)
+			voice_pool.append(player)
 	var connected_devices := Input.get_connected_joypads()
 	if connected_devices.is_empty():
 		push_warning("Kein Gamepad erkannt. Controller verbinden und das Spiel neu starten.")
@@ -62,6 +72,8 @@ func _ready() -> void:
 	print("Instrument MVP bereit. Aktives Instrument: %s" % instrument_label())
 	print("D-Pad Down: Auswahl | D-Pad Up: Spielen")
 	print("Spielmodus: L1=C4 | L2=E4 | R1=G4 | R2=A4 | R3=D4")
+	if AUDIO_FOUNDATION_TEST:
+		print("AUDIO FOUNDATION STUFE 2: ein Player, Referenz-Sinustöne, keine Polyphonie.")
 
 
 func _input(event: InputEvent) -> void:
@@ -119,6 +131,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func process_note_action(action: String) -> void:
+	if AUDIO_FOUNDATION_TEST:
+		play_note(NOTES[action])
+		return
 	if mode == Mode.PLAY:
 		play_note(NOTES[action])
 	elif INSTRUMENTS.has(action):
@@ -127,6 +142,16 @@ func process_note_action(action: String) -> void:
 
 
 func play_note(note: String) -> void:
+	if AUDIO_FOUNDATION_TEST:
+		var reference_stream := reference_stream_cache.get(note) as AudioStream
+		if reference_stream == null:
+			push_warning("Referenz-Sound fehlt: res://sounds/reference_sine/sine_%s.wav" % note)
+			return
+		reference_player.stop()
+		reference_player.stream = reference_stream
+		reference_player.play()
+		print("Reference Sine: %s" % note)
+		return
 	var key := "%s_%s" % [selected_instrument, note]
 	var stream := stream_cache.get(key) as AudioStream
 	if stream == null:
