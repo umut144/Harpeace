@@ -122,13 +122,13 @@ def violin(freq: float) -> list[float]:
     return result
 
 
-def normalise(samples: list[float]) -> list[float]:
+def normalise(samples: list[float], target_peak: float = 0.85) -> list[float]:
     peak = max(abs(sample) for sample in samples) or 1.0
-    return [max(-1.0, min(1.0, sample / peak * 0.85)) for sample in samples]
+    return [max(-1.0, min(1.0, sample / peak * target_peak)) for sample in samples]
 
 
-def write_wav(path: Path, samples: list[float]) -> None:
-    payload = b"".join(struct.pack("<h", round(sample * 32767)) for sample in normalise(samples))
+def write_wav(path: Path, samples: list[float], target_peak: float = 0.85) -> None:
+    payload = b"".join(struct.pack("<h", round(sample * 32767)) for sample in normalise(samples, target_peak))
     with wave.open(str(path), "wb") as output:
         output.setnchannels(1)
         output.setsampwidth(2)
@@ -147,7 +147,9 @@ def main() -> None:
         }
         for instrument, samples in sounds.items():
             target = OUTPUT_DIRECTORY / f"{instrument}_{note}.wav"
-            write_wav(target, samples)
+            # Two violin voices often overlap; extra headroom prevents summed clipping.
+            target_peak = 0.55 if instrument == "violin" else 0.85
+            write_wav(target, samples, target_peak)
             print(f"created {target.relative_to(OUTPUT_DIRECTORY.parent)}")
 
 
