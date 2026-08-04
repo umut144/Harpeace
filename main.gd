@@ -25,6 +25,7 @@ const TRIGGER_PRESS_THRESHOLD := 0.35
 const MAX_ACTIVE_VOICES := 3
 const AUDIO_FOUNDATION_TEST := true
 const REFERENCE_VOICE_COUNT := 2
+const FOUNDATION_INSTRUMENT := "harp"
 
 var mode: Mode = Mode.PLAY
 var selected_instrument := "piano"
@@ -46,7 +47,7 @@ func _ready() -> void:
 	remove_trigger_button("note_a", 14)
 	if AUDIO_FOUNDATION_TEST:
 		for note: String in NOTES.values():
-			reference_stream_cache[note] = load("res://sounds/foundation_piano/piano_%s.wav" % note) as AudioStream
+			reference_stream_cache[note] = load("res://sounds/foundation_%s/%s_%s.wav" % [FOUNDATION_INSTRUMENT, FOUNDATION_INSTRUMENT, note]) as AudioStream
 		for slot in REFERENCE_VOICE_COUNT:
 			var reference_player := AudioStreamPlayer.new()
 			reference_player.name = "ReferenceVoice_%d" % (slot + 1)
@@ -77,7 +78,7 @@ func _ready() -> void:
 	print("D-Pad Down: Auswahl | D-Pad Up: Spielen")
 	print("Spielmodus: L1=C4 | L2=E4 | R1=G4 | R2=A4 | R3=D4")
 	if AUDIO_FOUNDATION_TEST:
-		print("AUDIO FOUNDATION STUFE 4: Foundation Piano, manueller %d-Voice-Pool." % REFERENCE_VOICE_COUNT)
+		print("AUDIO FOUNDATION STUFE 4: Foundation %s, manueller %d-Voice-Pool." % [FOUNDATION_INSTRUMENT.capitalize(), REFERENCE_VOICE_COUNT])
 
 
 func _input(event: InputEvent) -> void:
@@ -149,14 +150,14 @@ func play_note(note: String) -> void:
 	if AUDIO_FOUNDATION_TEST:
 		var reference_stream := reference_stream_cache.get(note) as AudioStream
 		if reference_stream == null:
-			push_warning("Foundation-Piano fehlt: res://sounds/foundation_piano/piano_%s.wav" % note)
+			push_warning("Foundation-%s fehlt: res://sounds/foundation_%s/%s_%s.wav" % [FOUNDATION_INSTRUMENT, FOUNDATION_INSTRUMENT, FOUNDATION_INSTRUMENT, note])
 			return
 		var player := acquire_reference_voice()
 		player.stop()
 		player.stream = reference_stream
 		player.play()
 		active_reference_voices.append(player)
-		print("Foundation Piano: %s" % note)
+		print("Foundation %s: %s" % [FOUNDATION_INSTRUMENT.capitalize(), note])
 		return
 	var key := "%s_%s" % [selected_instrument, note]
 	var stream := stream_cache.get(key) as AudioStream
