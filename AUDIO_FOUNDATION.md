@@ -44,3 +44,13 @@ stop there: the audio architecture is the cause, not the instrument sound.
 Replace the sine samples with one instrument family, starting with piano.
 Keep the same headroom and import settings. Only introduce effects after the
 dry multi-voice test is clean.
+
+The first foundation instrument set is generated with:
+
+```sh
+python3 audio_generator/generate_foundation_piano.py
+```
+
+It writes to `sounds/foundation_piano/`. Select those five WAV files in Godot,
+apply the same PCM import settings, and click **Reimport** before running the
+Phase 4 test.
