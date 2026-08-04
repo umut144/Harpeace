@@ -1,0 +1,51 @@
+; Minimal gamepad instrument MVP.
+; Generated audio is stored in sounds/ and imported automatically by Godot.
+config_version=5
+
+[application]
+config/name="Harpeace"
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.5")
+
+[display]
+
+[display/window]
+size/viewport_width=960
+size/viewport_height=540
+size/window_width_override=960
+size/window_height_override=540
+stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+
+[input]
+note_c={
+"deadzone": 0.5,
+"events": [Object(InputEventJoypadButton,"resource_local_to_scene":false,"device":-1,"button_index":9,"pressure":0.0,"pressed":false,"script":null)]
+}
+note_e={
+"deadzone": 0.5,
+"events": [Object(InputEventJoypadButton,"resource_local_to_scene":false,"device":-1,"button_index":13,"pressure":0.0,"pressed":false,"script":null)]
+}
+note_g={
+"deadzone": 0.5,
+"events": [Object(InputEventJoypadButton,"resource_local_to_scene":false,"device":-1,"button_index":10,"pressure":0.0,"pressed":false,"script":null)]
+}
+note_a={
+"deadzone": 0.5,
+"events": [Object(InputEventJoypadButton,"resource_local_to_scene":false,"device":-1,"button_index":14,"pressure":0.0,"pressed":false,"script":null)]
+}
+note_d={
+"deadzone": 0.5,
+"events": [Object(InputEventJoypadButton,"resource_local_to_scene":false,"device":-1,"button_index":8,"pressure":0.0,"pressed":false,"script":null)]
+}
+instrument_mode={
+"deadzone": 0.5,
+"events": [Object(InputEventJoypadButton,"resource_local_to_scene":false,"device":-1,"button_index":12,"pressure":0.0,"pressed":false,"script":null)]
+}
+play_mode={
+"deadzone": 0.5,
+"events": [Object(InputEventJoypadButton,"resource_local_to_scene":false,"device":-1,"button_index":11,"pressure":0.0,"pressed":false,"script":null)]
+}
