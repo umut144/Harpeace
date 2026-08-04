@@ -23,18 +23,12 @@ const INSTRUMENTS := {
 
 const TRIGGER_PRESS_THRESHOLD := 0.35
 const MAX_ACTIVE_VOICES := 2
-const AUDIO_FOUNDATION_TEST := false
-const REFERENCE_VOICE_COUNT := 2
-const FOUNDATION_INSTRUMENT := "harp"
 
 var mode: Mode = Mode.PLAY
 var selected_instrument := "piano"
 var stream_cache: Dictionary = {}
 var voice_pool: Array[AudioStreamPlayer] = []
 var active_voices: Array[AudioStreamPlayer] = []
-var reference_stream_cache: Dictionary = {}
-var reference_voice_pool: Array[AudioStreamPlayer] = []
-var active_reference_voices: Array[AudioStreamPlayer] = []
 var trigger_pressed := {
 	JOY_AXIS_TRIGGER_LEFT: false,
 	JOY_AXIS_TRIGGER_RIGHT: false,
@@ -45,27 +39,18 @@ var trigger_idle := {}
 func _ready() -> void:
 	remove_trigger_button("note_e", 13)
 	remove_trigger_button("note_a", 14)
-	if AUDIO_FOUNDATION_TEST:
+	for instrument: String in INSTRUMENTS.values():
+		var first_note := NOTES.values()[0] as String
+		if stream_cache.has("%s_%s" % [instrument, first_note]):
+			continue
 		for note: String in NOTES.values():
-			reference_stream_cache[note] = load("res://sounds/foundation_%s/%s_%s.wav" % [FOUNDATION_INSTRUMENT, FOUNDATION_INSTRUMENT, note]) as AudioStream
-		for slot in REFERENCE_VOICE_COUNT:
-			var reference_player := AudioStreamPlayer.new()
-			reference_player.name = "ReferenceVoice_%d" % (slot + 1)
-			add_child(reference_player)
-			reference_voice_pool.append(reference_player)
-	else:
-		for instrument: String in INSTRUMENTS.values():
-			var first_note := NOTES.values()[0] as String
-			if stream_cache.has("%s_%s" % [instrument, first_note]):
-				continue
-			for note: String in NOTES.values():
-				var path := "res://sounds/foundation_%s/%s_%s.wav" % [instrument, instrument, note]
-				stream_cache["%s_%s" % [instrument, note]] = load(path) as AudioStream
-		for slot in MAX_ACTIVE_VOICES:
-			var player := AudioStreamPlayer.new()
-			player.name = "Voice_%d" % (slot + 1)
-			add_child(player)
-			voice_pool.append(player)
+			var path := "res://sounds/foundation_%s/%s_%s.wav" % [instrument, instrument, note]
+			stream_cache["%s_%s" % [instrument, note]] = load(path) as AudioStream
+	for slot in MAX_ACTIVE_VOICES:
+		var player := AudioStreamPlayer.new()
+		player.name = "Voice_%d" % (slot + 1)
+		add_child(player)
+		voice_pool.append(player)
 	var connected_devices := Input.get_connected_joypads()
 	if connected_devices.is_empty():
 		push_warning("Kein Gamepad erkannt. Controller verbinden und das Spiel neu starten.")
@@ -77,8 +62,6 @@ func _ready() -> void:
 	print("Instrument MVP bereit. Aktives Instrument: %s" % instrument_label())
 	print("D-Pad Down: Auswahl | D-Pad Up: Spielen")
 	print("Spielmodus: L1=C4 | L2=E4 | R1=G4 | R2=A4 | R3=D4")
-	if AUDIO_FOUNDATION_TEST:
-		print("AUDIO FOUNDATION STUFE 4: Foundation %s, manueller %d-Voice-Pool." % [FOUNDATION_INSTRUMENT.capitalize(), REFERENCE_VOICE_COUNT])
 
 
 func _input(event: InputEvent) -> void:
@@ -136,9 +119,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func process_note_action(action: String) -> void:
-	if AUDIO_FOUNDATION_TEST:
-		play_note(NOTES[action])
-		return
 	if mode == Mode.PLAY:
 		play_note(NOTES[action])
 	elif INSTRUMENTS.has(action):
@@ -147,22 +127,10 @@ func process_note_action(action: String) -> void:
 
 
 func play_note(note: String) -> void:
-	if AUDIO_FOUNDATION_TEST:
-		var reference_stream := reference_stream_cache.get(note) as AudioStream
-		if reference_stream == null:
-			push_warning("Foundation-%s fehlt: res://sounds/foundation_%s/%s_%s.wav" % [FOUNDATION_INSTRUMENT, FOUNDATION_INSTRUMENT, FOUNDATION_INSTRUMENT, note])
-			return
-		var player := acquire_reference_voice()
-		player.stop()
-		player.stream = reference_stream
-		player.play()
-		active_reference_voices.append(player)
-		print("Foundation %s: %s" % [FOUNDATION_INSTRUMENT.capitalize(), note])
-		return
 	var key := "%s_%s" % [selected_instrument, note]
 	var stream := stream_cache.get(key) as AudioStream
 	if stream == null:
-		push_warning("Sound fehlt: %s_%s.wav. Starte audio_generator/generate_sounds.py." % [selected_instrument, note])
+		push_warning("Sound fehlt: %s_%s.wav. Erzeuge und importiere den passenden Foundation-Sound erneut." % [selected_instrument, note])
 		return
 	var player := acquire_voice()
 	player.stop()
@@ -184,18 +152,6 @@ func acquire_voice() -> AudioStreamPlayer:
 			return player
 	# Safety fallback: this should only be reached if a driver reports stale state.
 	return active_voices.pop_front()
-
-
-func acquire_reference_voice() -> AudioStreamPlayer:
-	for index in range(active_reference_voices.size() - 1, -1, -1):
-		if not active_reference_voices[index].is_playing():
-			active_reference_voices.remove_at(index)
-	if active_reference_voices.size() >= REFERENCE_VOICE_COUNT:
-		return active_reference_voices.pop_front()
-	for player: AudioStreamPlayer in reference_voice_pool:
-		if not player.is_playing():
-			return player
-	return active_reference_voices.pop_front()
 
 
 func preview_instrument() -> void:

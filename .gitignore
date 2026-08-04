@@ -1,0 +1,9 @@
+# Generated editor/import state
+.godot/
+
+# Local operating-system metadata
+.DS_Store
+
+# Python bytecode caches
+__pycache__/
+*.py[cod]
