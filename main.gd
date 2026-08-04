@@ -24,7 +24,7 @@ const INSTRUMENTS := {
 const TRIGGER_PRESS_THRESHOLD := 0.35
 const MAX_ACTIVE_VOICES := 3
 const AUDIO_FOUNDATION_TEST := true
-const REFERENCE_POLYPHONY := 2
+const REFERENCE_VOICE_COUNT := 2
 
 var mode: Mode = Mode.PLAY
 var selected_instrument := "piano"
@@ -32,8 +32,8 @@ var stream_cache: Dictionary = {}
 var voice_pool: Array[AudioStreamPlayer] = []
 var active_voices: Array[AudioStreamPlayer] = []
 var reference_stream_cache: Dictionary = {}
-var reference_player: AudioStreamPlayer
-var reference_playback: AudioStreamPlaybackPolyphonic
+var reference_voice_pool: Array[AudioStreamPlayer] = []
+var active_reference_voices: Array[AudioStreamPlayer] = []
 var trigger_pressed := {
 	JOY_AXIS_TRIGGER_LEFT: false,
 	JOY_AXIS_TRIGGER_RIGHT: false,
@@ -47,14 +47,11 @@ func _ready() -> void:
 	if AUDIO_FOUNDATION_TEST:
 		for note: String in NOTES.values():
 			reference_stream_cache[note] = load("res://sounds/reference_sine/sine_%s.wav" % note) as AudioStream
-		var reference_polyphonic_stream := AudioStreamPolyphonic.new()
-		reference_polyphonic_stream.polyphony = REFERENCE_POLYPHONY
-		reference_player = AudioStreamPlayer.new()
-		reference_player.name = "ReferenceSinePlayer"
-		reference_player.stream = reference_polyphonic_stream
-		add_child(reference_player)
-		reference_player.play()
-		reference_playback = reference_player.get_stream_playback() as AudioStreamPlaybackPolyphonic
+		for slot in REFERENCE_VOICE_COUNT:
+			var reference_player := AudioStreamPlayer.new()
+			reference_player.name = "ReferenceVoice_%d" % (slot + 1)
+			add_child(reference_player)
+			reference_voice_pool.append(reference_player)
 	else:
 		for instrument: String in INSTRUMENTS.values():
 			var first_note := NOTES.values()[0] as String
@@ -80,7 +77,7 @@ func _ready() -> void:
 	print("D-Pad Down: Auswahl | D-Pad Up: Spielen")
 	print("Spielmodus: L1=C4 | L2=E4 | R1=G4 | R2=A4 | R3=D4")
 	if AUDIO_FOUNDATION_TEST:
-		print("AUDIO FOUNDATION STUFE 3A: Referenz-Sinustöne, %d Polyphonie-Stimmen." % REFERENCE_POLYPHONY)
+		print("AUDIO FOUNDATION STUFE 3A: Referenz-Sinustöne, manueller %d-Voice-Pool." % REFERENCE_VOICE_COUNT)
 
 
 func _input(event: InputEvent) -> void:
@@ -154,15 +151,11 @@ func play_note(note: String) -> void:
 		if reference_stream == null:
 			push_warning("Referenz-Sound fehlt: res://sounds/reference_sine/sine_%s.wav" % note)
 			return
-		if reference_playback == null:
-			reference_playback = reference_player.get_stream_playback() as AudioStreamPlaybackPolyphonic
-		if reference_playback == null:
-			push_warning("Referenz-Polyphonie ist noch nicht bereit.")
-			return
-		var voice_id := reference_playback.play_stream(reference_stream)
-		if voice_id < 0:
-			push_warning("Alle %d Referenz-Stimmen sind aktiv." % REFERENCE_POLYPHONY)
-			return
+		var player := acquire_reference_voice()
+		player.stop()
+		player.stream = reference_stream
+		player.play()
+		active_reference_voices.append(player)
 		print("Reference Sine: %s" % note)
 		return
 	var key := "%s_%s" % [selected_instrument, note]
@@ -190,6 +183,18 @@ func acquire_voice() -> AudioStreamPlayer:
 			return player
 	# Safety fallback: this should only be reached if a driver reports stale state.
 	return active_voices.pop_front()
+
+
+func acquire_reference_voice() -> AudioStreamPlayer:
+	for index in range(active_reference_voices.size() - 1, -1, -1):
+		if not active_reference_voices[index].is_playing():
+			active_reference_voices.remove_at(index)
+	if active_reference_voices.size() >= REFERENCE_VOICE_COUNT:
+		return active_reference_voices.pop_front()
+	for player: AudioStreamPlayer in reference_voice_pool:
+		if not player.is_playing():
+			return player
+	return active_reference_voices.pop_front()
 
 
 func preview_instrument() -> void:
